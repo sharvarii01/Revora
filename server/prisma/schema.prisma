@@ -1,0 +1,269 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Merchant {
+  id                  String            @id @default(cuid())
+  name                String
+  email               String            @unique
+  passwordHash        String
+  businessName        String            @default("Merchant Business")
+  environment         String            @default("LIVE") // TEST | LIVE
+  razorpayKeyId       String?
+  razorpayKeySecret   String?
+  webhookSecret       String?
+  maxDiscountPct      Float             @default(10.0)
+  autoRecoveryEnabled Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  refreshTokens       RefreshToken[]
+  customers           Customer[]
+  subscriptions       Subscription[]
+  abandonedCarts      AbandonedCart[]
+  payments            Payment[]
+  recoverySessions    RecoverySession[]
+  auditLogs           AuditLog[]
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  merchantId String
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  revoked    Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+}
+
+model Customer {
+  id                  String            @id @default(cuid())
+  merchantId          String
+  merchant            Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  razorpayCustId      String?
+  name                String
+  email               String
+  phone               String
+  vpa                 String?
+  optedOut            Boolean           @default(false)
+  riskScore           Int               @default(15) // 0 - 100
+  healthScore         Int               @default(85) // 0 - 100
+  recoveryProbability Int               @default(80) // 0 - 100
+  lifetimeRecovered   Float             @default(0.0)
+  lifetimeLost        Float             @default(0.0)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  mandates            Mandate[]
+  subscriptions       Subscription[]
+  abandonedCarts      AbandonedCart[]
+  payments            Payment[]
+  recoverySessions    RecoverySession[]
+
+  @@index([merchantId, email])
+  @@index([merchantId, phone])
+}
+
+model Mandate {
+  id                String            @id @default(cuid())
+  customerId        String
+  customer          Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  razorpayMandateId String            @unique
+  vpa               String?
+  bankName          String?
+  maxAmount         Float
+  frequency         String            @default("monthly")
+  status            String            @default("ACTIVE") // ACTIVE, PAUSED, REVOKED, EXPIRED
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  subscriptions     Subscription[]
+}
+
+model Subscription {
+  id                String            @id @default(cuid())
+  merchantId        String
+  merchant          Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customerId        String
+  customer          Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  mandateId         String?
+  mandate           Mandate?          @relation(fields: [mandateId], references: [id])
+  razorpaySubId     String            @unique
+  planName          String
+  amount            Float
+  currency          String            @default("INR")
+  billingCycle      String            @default("monthly")
+  nextDueDate       DateTime
+  status            String            @default("active") // active, past_due, halted, cancelled, completed, recovering
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  recoverySessions  RecoverySession[]
+  payments          Payment[]
+}
+
+model AbandonedCart {
+  id                String            @id @default(cuid())
+  merchantId        String
+  merchant          Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customerId        String
+  customer          Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  itemsSummary      String
+  cartValue         Float
+  currency          String            @default("INR")
+  abandonedAt       DateTime          @default(now())
+  checkoutUrl       String?
+  status            String            @default("abandoned") // abandoned, recovered, expired
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  recoverySessions  RecoverySession[]
+}
+
+model Payment {
+  id                String            @id @default(cuid())
+  merchantId        String
+  merchant          Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customerId        String
+  customer          Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  subscriptionId    String?
+  subscription      Subscription?     @relation(fields: [subscriptionId], references: [id])
+  razorpayPaymentId String            @unique
+  razorpayOrderId   String?
+  amount            Float
+  currency          String            @default("INR")
+  status            String            // created, authorized, captured, failed, refunded
+  method            String            @default("upi_autopay") // upi_autopay, card, netbanking, payment_link
+  bank              String?
+  errorCode         String?
+  errorDescription  String?
+  retryCount        Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([merchantId, status])
+}
+
+model RecoverySession {
+  id                    String            @id @default(cuid())
+  merchantId            String
+  merchant              Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customerId            String
+  customer              Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type                  String            // SUBSCRIPTION_AUTOPAY | CHECKOUT_ABANDONMENT
+  status                String            @default("ANALYZING_AI")
+  subscriptionId        String?
+  subscription          Subscription?     @relation(fields: [subscriptionId], references: [id])
+  cartId                String?
+  cart                  AbandonedCart?    @relation(fields: [cartId], references: [id])
+  
+  planOrItemName        String            @default("Subscription Renewal")
+  originalAmount        Float
+  recoveredAmount       Float             @default(0.0)
+  appliedDiscountPct    Float             @default(0.0)
+  
+  failureCode           String?
+  failureCategory       String?           // TRANSIENT | ACTION_REQUIRED | TERMINAL
+  failureDescription    String?
+
+  npciAttemptCount      Int               @default(0)
+  maxNpciAttempts       Int               @default(3)
+  nextScheduledRetry    DateTime?
+  cooldownHoursRemaining Float            @default(0.0)
+  stopReason            String?
+
+  razorpayPaymentLinkId String?
+  paymentLinkUrl        String?
+
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  retryAttempts         RetryAttempt[]
+  aiDecisions           AIDecision[]
+  notificationLogs      NotificationLog[]
+
+  @@index([merchantId, status])
+  @@index([merchantId, createdAt])
+}
+
+model RetryAttempt {
+  id                String            @id @default(cuid())
+  recoverySessionId String
+  recoverySession   RecoverySession   @relation(fields: [recoverySessionId], references: [id], onDelete: Cascade)
+  attemptNumber     Int               // 1, 2, 3
+  scheduledFor      DateTime
+  executedAt        DateTime?
+  status            String            // scheduled, success, failed, skipped_user_paid
+  razorpayPaymentId String?
+  errorCode         String?
+  errorDescription  String?
+  cooldownHoursMet  Float             @default(0.0)
+  createdAt         DateTime          @default(now())
+
+  @@index([recoverySessionId, attemptNumber])
+}
+
+model AIDecision {
+  id                     String            @id @default(cuid())
+  recoverySessionId      String
+  recoverySession        RecoverySession   @relation(fields: [recoverySessionId], references: [id], onDelete: Cascade)
+  modelName              String            @default("gemini-2.5-flash")
+  actionRecommended      String
+  recoveryScore          Int               // 0 - 100
+  riskScore              Int               // 0 - 100
+  confidence             Float             // 0.0 - 1.0
+  optimalRetryTime       DateTime?
+  appliedOfferPct        Float?
+  headline               String            @default("AI Recovery Assessment")
+  rationale              String
+  complianceRule         String
+  customerMessagePreview String?
+  fullPromptPayload      String?
+  fullModelOutput        String?
+  createdAt              DateTime          @default(now())
+
+  @@index([recoverySessionId])
+}
+
+model NotificationLog {
+  id                String            @id @default(cuid())
+  recoverySessionId String
+  recoverySession   RecoverySession   @relation(fields: [recoverySessionId], references: [id], onDelete: Cascade)
+  channel           String            // WHATSAPP, SMS, EMAIL
+  recipient         String
+  templateName      String            @default("PAYMENT_FAILED_COURTESY")
+  messageBody       String
+  ctaUrl            String?
+  status            String            @default("SENT") // QUEUED, SENT, DELIVERED, READ, LINK_CLICKED, FAILED
+  deliveredAt       DateTime?
+  clickedAt         DateTime?
+  createdAt         DateTime          @default(now())
+
+  @@index([recoverySessionId])
+}
+
+model AuditLog {
+  id                String            @id @default(cuid())
+  merchantId        String
+  merchant          Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  eventType         String            // PAYMENT_FAILED, NPCI_VALIDATED, AI_DECISION_RECORDED, RETRY_SCHEDULED, PAYMENT_CAPTURED, RECOVERY_CLOSED, MANUAL_OVERRIDE
+  entityType        String            // RECOVERY_SESSION, MANDATE, SUBSCRIPTION, PAYMENT
+  entityId          String
+  title             String            @default("Audit Event")
+  description       String
+  customerName      String?
+  amount            Float?
+  status            String            @default("INFO") // SUCCESS, WARNING, DANGER, INFO
+  metadataJson      String?
+  complianceTag     String?           // NPCI_OC136_COMPLIANT, RBI_EMANDATE_COMPLIANT, NPCI_CAP_ENFORCED
+  complianceHash    String?           // SHA256 cryptographic hash of compliance proof
+  createdAt         DateTime          @default(now())
+
+  @@index([merchantId, eventType])
+  @@index([merchantId, createdAt])
+}

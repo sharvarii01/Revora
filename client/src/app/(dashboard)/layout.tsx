@@ -1,0 +1,33 @@
+'use client';
+
+import React from 'react';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { Topbar } from '@/components/layout/Topbar';
+import { RecoveryDetailDrawer } from '@/components/recovery/RecoveryDetailDrawer';
+import { useSimulator } from '@/context/SimulatorContext';
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { selectedRecovery, isDrawerOpen, setIsDrawerOpen } = useSimulator();
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex">
+      {/* Fixed Sidebar (280px wide) */}
+      <Sidebar />
+
+      {/* Main Content Area (Fluid full-width 90-95% screen) */}
+      <div className="flex-1 flex flex-col ml-[280px] min-w-0">
+        <Topbar />
+        <main className="flex-1 w-full px-8 xl:px-12 2xl:px-16 py-8 pb-16">
+          {children}
+        </main>
+      </div>
+
+      {/* Global Recovery Detail Drawer */}
+      <RecoveryDetailDrawer
+        recovery={selectedRecovery}
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+      />
+    </div>
+  );
+}
