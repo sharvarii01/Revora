@@ -23,4 +23,9 @@ export const recoveriesService = {
     const res = await apiClient.post(`/recoveries/${id}/stop`, { reason, notes });
     return res.data.data;
   },
+
+  async deleteRecovery(id: string) {
+    const res = await apiClient.delete(`/recoveries/${id}`);
+    return res.data;
+  },
 };

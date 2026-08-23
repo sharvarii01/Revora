@@ -8,7 +8,10 @@ import { formatINR } from '@/utils/currency';
 import { formatDate } from '@/utils/date';
 import { Loader2 } from 'lucide-react';
 
+import { useSimulator } from '@/context/SimulatorContext';
+
 export function SubscriptionTable() {
+  const { recoveries } = useSimulator();
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -26,7 +29,7 @@ export function SubscriptionTable() {
       }
     }
     load();
-  }, []);
+  }, [recoveries]);
 
   if (isLoading) {
     return (

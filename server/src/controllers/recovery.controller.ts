@@ -47,6 +47,16 @@ export class RecoveryController {
       next(err);
     }
   }
+
+  async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const merchantId = req.user?.merchantId || 'mer_demo_1';
+      const result = await recoveryService.deleteRecovery(req.params.id, merchantId);
+      return sendSuccess(res, result, 'Recovery session deleted successfully.');
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const recoveryController = new RecoveryController();

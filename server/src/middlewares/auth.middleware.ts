@@ -2,15 +2,32 @@ import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../types/api.types';
 import { verifyAccessToken } from '../utils/jwt.util';
 import { UnauthorizedError } from '../utils/errors';
+import { MerchantModel } from '../models/Merchant.model';
 
-export function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+let cachedMerchantId: string | null = null;
+
+async function resolveDefaultMerchantId(): Promise<string> {
+  if (cachedMerchantId) return cachedMerchantId;
+  try {
+    const m: any = await MerchantModel.findOne({ email: 'sharvi@saasplatform.in' }).lean();
+    if (m) {
+      cachedMerchantId = m._id.toString();
+      return cachedMerchantId;
+    }
+  } catch {
+    // fallback
+  }
+  return 'mer_demo_1';
+}
+
+export async function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // For seamless hackathon evaluation, if no token provided in development, inject demo merchant
     if (process.env.NODE_ENV !== 'production') {
+      const merchantId = await resolveDefaultMerchantId();
       req.user = {
-        merchantId: 'mer_demo_1',
+        merchantId,
         email: 'sharvi@saasplatform.in',
         businessName: 'NovaCloud Technologies Pvt Ltd',
       };
@@ -20,9 +37,15 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
   }
 
   const token = authHeader.split(' ')[1];
-  if (token === 'revora_demo_access_jwt_2026' || token.startsWith('revora_demo') || token === 'vasooli_demo_access_jwt_2026' || token.startsWith('vasooli_demo')) {
+  if (
+    token === 'revora_demo_access_jwt_2026' ||
+    token.startsWith('revora_demo') ||
+    token === 'vasooli_demo_access_jwt_2026' ||
+    token.startsWith('vasooli_demo')
+  ) {
+    const merchantId = await resolveDefaultMerchantId();
     req.user = {
-      merchantId: 'mer_demo_1',
+      merchantId,
       email: 'sharvi@saasplatform.in',
       businessName: 'NovaCloud Technologies Pvt Ltd',
     };
@@ -35,8 +58,9 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
     next();
   } catch {
     if (process.env.NODE_ENV !== 'production') {
+      const merchantId = await resolveDefaultMerchantId();
       req.user = {
-        merchantId: 'mer_demo_1',
+        merchantId,
         email: 'sharvi@saasplatform.in',
         businessName: 'NovaCloud Technologies Pvt Ltd',
       };

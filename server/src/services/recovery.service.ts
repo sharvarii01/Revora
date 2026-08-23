@@ -106,6 +106,13 @@ export class RecoveryService {
     return updated;
   }
 
+  async deleteRecovery(id: string, merchantId: string) {
+    const session = await recoveryRepository.findById(id, merchantId);
+    if (!session) throw new NotFoundError('Recovery session not found.');
+
+    return recoveryRepository.delete(id, merchantId);
+  }
+
   private formatRecoveryRecord(rec: any): RecoveryDetailResponse {
     const ai = rec.aiDecisions?.[0];
     const failureMeta = rec.failureCode ? FAILURE_CODE_CATALOG[rec.failureCode] : undefined;
@@ -117,23 +124,23 @@ export class RecoveryService {
     }
 
     return {
-      id: rec.id,
-      customerId: rec.customer.id,
-      customerName: rec.customer.name,
-      customerEmail: rec.customer.email,
-      customerPhone: rec.customer.phone,
+      id: rec.id || rec._id?.toString(),
+      customerId: rec.customer?._id?.toString() || rec.customer?.id || rec.customerId || '',
+      customerName: rec.customer?.name || 'Customer',
+      customerEmail: rec.customer?.email || '',
+      customerPhone: rec.customer?.phone || '',
       type: rec.type,
-      planOrItemName: rec.planOrItemName,
-      amount: rec.originalAmount,
-      recoveredAmount: rec.recoveredAmount,
-      appliedDiscountPct: rec.appliedDiscountPct,
+      planOrItemName: rec.planOrItemName || 'Plan Renewal',
+      amount: rec.originalAmount || 0,
+      recoveredAmount: rec.recoveredAmount || 0,
+      appliedDiscountPct: rec.appliedDiscountPct || 0,
       status: rec.status,
       failureCode: rec.failureCode,
       failureReason: failureMeta?.name || rec.failureDescription || 'Payment Failed',
       failureCategory: rec.failureCategory || failureMeta?.category || 'TRANSIENT',
       currentAttempt: rec.npciAttemptCount || 1,
       maxAttempts: rec.maxNpciAttempts || 3,
-      nextRetryTime: rec.nextScheduledRetry ? rec.nextScheduledRetry.toISOString() : null,
+      nextRetryTime: rec.nextScheduledRetry ? new Date(rec.nextScheduledRetry).toISOString() : null,
       cooldownHoursRemaining: cooldownHours,
       stopReason: rec.stopReason,
       paymentLinkUrl: rec.paymentLinkUrl,
@@ -143,7 +150,7 @@ export class RecoveryService {
         recoveryScore: ai?.recoveryScore ?? 88,
         riskScore: ai?.riskScore ?? 12,
         confidence: ai?.confidence ?? 0.94,
-        optimalRetryTime: ai?.optimalRetryTime ? ai.optimalRetryTime.toISOString() : null,
+        optimalRetryTime: ai?.optimalRetryTime ? new Date(ai.optimalRetryTime).toISOString() : null,
         appliedOfferPct: ai?.appliedOfferPct ?? null,
         headline: ai?.headline || 'Intelligent AutoPay Retry Scheduled',
         rationale: ai?.rationale || 'Cooldown enforced in accordance with NPCI OC-136.',
@@ -151,26 +158,26 @@ export class RecoveryService {
         customerMessagePreview: ai?.customerMessagePreview || '',
       },
       retryTimeline: (rec.retryAttempts || []).map((ra: any) => ({
-        id: ra.id,
-        attemptNumber: ra.attemptNumber,
-        scheduledFor: ra.scheduledFor.toISOString(),
-        executedAt: ra.executedAt ? ra.executedAt.toISOString() : null,
+        id: ra.id || ra._id?.toString(),
+        attemptNumber: ra.attemptNumber || 1,
+        scheduledFor: ra.scheduledFor ? new Date(ra.scheduledFor).toISOString() : new Date().toISOString(),
+        executedAt: ra.executedAt ? new Date(ra.executedAt).toISOString() : null,
         status: ra.status,
         errorCode: ra.errorCode,
         errorDescription: ra.errorDescription,
         cooldownHoursMet: ra.cooldownHoursMet,
       })),
       notificationHistory: (rec.notificationLogs || []).map((nl: any) => ({
-        id: nl.id,
+        id: nl.id || nl._id?.toString(),
         channel: nl.channel,
         recipient: nl.recipient,
         messageBody: nl.messageBody,
         ctaUrl: nl.ctaUrl,
         status: nl.status,
-        timestamp: nl.createdAt.toISOString(),
+        timestamp: nl.createdAt ? new Date(nl.createdAt).toISOString() : new Date().toISOString(),
       })),
-      createdAt: rec.createdAt.toISOString(),
-      updatedAt: rec.updatedAt.toISOString(),
+      createdAt: rec.createdAt ? new Date(rec.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: rec.updatedAt ? new Date(rec.updatedAt).toISOString() : new Date().toISOString(),
     };
   }
 }

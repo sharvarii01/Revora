@@ -47,6 +47,16 @@ export class CustomerController {
       next(err);
     }
   }
+
+  async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const merchantId = req.user?.merchantId || 'mer_demo_1';
+      const result = await customerService.deleteCustomer(req.params.id, merchantId);
+      return sendSuccess(res, result, 'Customer deleted successfully.');
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const customerController = new CustomerController();

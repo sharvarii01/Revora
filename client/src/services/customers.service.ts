@@ -17,7 +17,12 @@ export const customersService = {
   },
 
   async updateCustomer(id: string, data: any) {
-    const res = await apiClient.patch(`/customers/${id}`, data);
+    const res = await apiClient.put(`/customers/${id}`, data);
     return res.data.data;
+  },
+
+  async deleteCustomer(id: string) {
+    const res = await apiClient.delete(`/customers/${id}`);
+    return res.data;
   },
 };

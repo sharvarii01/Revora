@@ -16,6 +16,8 @@ tsconfig.tsbuildinfo
 *.sqlite
 *.sqlite3
 dev.db
+data/
+server/data/
 
 # Environment variables & secrets
 .env

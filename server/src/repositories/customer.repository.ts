@@ -136,6 +136,11 @@ export class CustomerRepository {
       { new: true }
     ).lean();
   }
+
+  async delete(id: string, merchantId: string): Promise<boolean> {
+    const res = await CustomerModel.deleteOne({ _id: id, merchantId });
+    return res.deletedCount > 0;
+  }
 }
 
 export const customerRepository = new CustomerRepository();

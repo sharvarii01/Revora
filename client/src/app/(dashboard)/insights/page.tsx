@@ -23,6 +23,7 @@ const TABS: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
 ];
 
 function AIRecommendationsTab() {
+  const { recoveries } = useSimulator();
   const [insights, setInsights] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -38,7 +39,7 @@ function AIRecommendationsTab() {
     }
   };
 
-  useEffect(() => { fetchInsights(); }, []);
+  useEffect(() => { fetchInsights(); }, [recoveries]);
 
   if (isLoading) {
     return (

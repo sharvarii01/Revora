@@ -21,4 +21,8 @@ router.post('/:id/stop', validate(stopRecoverySchema), (req, res, next) =>
   recoveryController.stop(req, res, next)
 );
 
+router.delete('/:id', (req, res, next) =>
+  recoveryController.delete(req, res, next)
+);
+
 export default router;

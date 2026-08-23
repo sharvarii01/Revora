@@ -19,5 +19,8 @@ router.post('/', validate(createCustomerSchema), (req, res, next) =>
 router.put('/:id', validate(updateCustomerSchema), (req, res, next) =>
   customerController.update(req, res, next)
 );
+router.delete('/:id', (req, res, next) =>
+  customerController.delete(req, res, next)
+);
 
 export default router;

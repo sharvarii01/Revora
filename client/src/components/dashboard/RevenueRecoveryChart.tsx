@@ -15,7 +15,10 @@ import { analyticsService } from '@/services/analytics.service';
 import { formatINR } from '@/utils/currency';
 import { Loader2 } from 'lucide-react';
 
+import { useSimulator } from '@/context/SimulatorContext';
+
 export function RevenueRecoveryChart() {
+  const { recoveries } = useSimulator();
   const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,7 +36,7 @@ export function RevenueRecoveryChart() {
       }
     }
     load();
-  }, []);
+  }, [recoveries]);
 
   return (
     <Card className="flex flex-col bg-white rounded-3xl border-slate-200 shadow-xs overflow-hidden">

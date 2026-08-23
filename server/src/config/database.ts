@@ -1,3 +1,5 @@
+import path from 'path';
+import fs from 'fs';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { env } from './env';
@@ -23,34 +25,42 @@ export async function connectDatabase(): Promise<void> {
   mongoose.set('strictQuery', true);
   mongoose.set('bufferCommands', false);
 
-  // 1. First attempt: Connect to configured MongoDB Atlas URI
+  // 1. First attempt: Connect to configured MongoDB Atlas / local URI
   try {
-    logger.info('Connecting to MongoDB Atlas...');
+    logger.info('Connecting to MongoDB Atlas / Local URI...');
     await mongoose.connect(env.MONGODB_URI, {
       serverSelectionTimeoutMS: 3000,
       socketTimeoutMS: 5000,
     });
-    logger.info('🍃 Connected directly to MongoDB Atlas via Mongoose.');
+    logger.info('🍃 Connected directly to MongoDB via Mongoose.');
     await checkAndSeedInitialData();
     return;
   } catch (error: any) {
     logger.warn(
       { message: error?.message },
-      '⚠️ MongoDB Atlas connection could not be established (e.g. IP whitelist / network). Starting high-performance embedded MongoDB engine...'
+      '⚠️ MongoDB Atlas connection could not be established. Starting persistent embedded MongoDB engine...'
     );
   }
 
-  // 2. High-performance resilient fallback: Embedded MongoDB instance with full real MongoDB engine
+  // 2. Persistent Embedded MongoDB Engine on disk
   try {
-    mongodInstance = await MongoMemoryServer.create();
+    const dbDir = path.resolve(__dirname, '../../data/db');
+    fs.mkdirSync(dbDir, { recursive: true });
+
+    mongodInstance = await MongoMemoryServer.create({
+      instance: {
+        dbPath: dbDir,
+        storageEngine: 'wiredTiger',
+      },
+    });
     const memoryUri = mongodInstance.getUri();
-    logger.info({ memoryUri }, '🍃 Embedded MongoDB Engine initialized.');
+    logger.info({ memoryUri, dbDir }, '🍃 Persistent MongoDB Engine active (saved on disk in data/db).');
 
     await mongoose.connect(memoryUri, {
       serverSelectionTimeoutMS: 5000,
     });
 
-    logger.info('🍃 Connected to embedded MongoDB Database via Mongoose. All real collections, aggregations & indexes active.');
+    logger.info('🍃 Connected to persistent MongoDB Database via Mongoose. All real collections, aggregations & indexes active.');
     await checkAndSeedInitialData();
   } catch (err) {
     logger.error({ err }, '❌ Fatal: Failed to initialize MongoDB connection.');
@@ -93,7 +103,7 @@ async function checkAndSeedInitialData() {
 
     const sessionCount = await RecoverySessionModel.countDocuments();
     if (sessionCount > 0) {
-      logger.info('Database already contains live recovery sessions. Ready for production traffic.');
+      logger.info(`Database already contains ${sessionCount} live recovery sessions on disk. Ready for production traffic.`);
       return;
     }
 

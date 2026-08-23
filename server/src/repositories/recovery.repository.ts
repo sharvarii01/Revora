@@ -83,7 +83,17 @@ export class RecoveryRepository {
     }
 
     if (search) {
+      const matchingCustomers = await CustomerModel.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { phone: { $regex: search, $options: 'i' } },
+        ],
+      }).select('_id').lean();
+      const customerIds = (matchingCustomers || []).map((c: any) => c._id.toString());
+
       filter.$or = [
+        { customerId: { $in: customerIds } },
         { planOrItemName: { $regex: search, $options: 'i' } },
         { failureCode: { $regex: search, $options: 'i' } },
         { stopReason: { $regex: search, $options: 'i' } },
@@ -154,6 +164,11 @@ export class RecoveryRepository {
     const doc: any = await RecoverySessionModel.findByIdAndUpdate(id, { $set: data }, { new: true }).lean();
     if (!doc) return null;
     return { ...doc, id: doc._id.toString() };
+  }
+
+  async delete(id: string, merchantId: string): Promise<boolean> {
+    const res = await RecoverySessionModel.deleteOne({ _id: id, merchantId });
+    return res.deletedCount > 0;
   }
 }
 
