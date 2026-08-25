@@ -74,7 +74,7 @@ export function StatsCard({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <p className="text-base font-semibold text-slate-500 mb-1.5">{title}</p>
-            <p className="text-3xl xl:text-4xl font-extrabold text-slate-900 tracking-tight font-mono truncate">
+            <p className="text-2xl sm:text-3xl xl:text-4xl font-extrabold text-slate-900 tracking-tight font-mono">
               {value}
             </p>
           </div>

@@ -20,56 +20,64 @@ export class AnalyticsService {
       RetryAttemptModel.find({}).lean(),
     ]);
 
-    // 1. Recovered Revenue: sum of all recovered amount from payments & recovery sessions
+    // 1. Recovered Revenue: sum of all recovered amounts
+    const recoveredSessionsAmount = recoveries
+      .filter((r: any) => r.status && r.status.startsWith('RECOVERED'))
+      .reduce((sum, r: any) => sum + (r.recoveredAmount || r.originalAmount || 0), 0);
+
     const recoveredPaymentsAmount = payments
       .filter((p: any) => p.status === 'captured')
       .reduce((sum, p: any) => sum + (p.amount || 0), 0);
 
-    const recoveredSessionsAmount = recoveries
-      .reduce((sum, r: any) => sum + (r.recoveredAmount || 0), 0);
+    const recoveredRevenue = Math.max(recoveredSessionsAmount, recoveredPaymentsAmount);
 
-    const recoveredRevenue = Math.max(recoveredPaymentsAmount, recoveredSessionsAmount);
+    // 2. Money at Risk: sum of all active / unrecovered amounts
+    const activeSessionsAmount = recoveries
+      .filter((r: any) => !r.status || !r.status.startsWith('RECOVERED'))
+      .reduce((sum, r: any) => sum + (r.originalAmount || 0), 0);
 
-    // 2. Money at Risk: sum of all active failed payments / active recovery sessions
-    const failedPayments = payments.filter((p: any) => p.status === 'failed');
-    const moneyLeakageToday = failedPayments
+    const failedPaymentsAmount = payments
+      .filter((p: any) => p.status === 'failed')
       .reduce((sum, p: any) => sum + (p.amount || 0), 0);
 
-    // 3. Total Failed Amount and Count
-    const failedPaymentsCount = failedPayments.length || recoveries.filter((r: any) => !r.status.startsWith('RECOVERED')).length;
-    const failedPaymentsAmount = moneyLeakageToday;
+    const moneyLeakageToday = Math.max(activeSessionsAmount, failedPaymentsAmount);
 
-    // 4. Recovered Count & Rate
-    const recoveredCount = payments.filter((p: any) => p.status === 'captured').length ||
-      recoveries.filter((r: any) => r.status.startsWith('RECOVERED')).length;
+    // 3. Counts and Rate
+    const recoveredCount = recoveries.filter((r: any) => r.status && r.status.startsWith('RECOVERED')).length ||
+      payments.filter((p: any) => p.status === 'captured').length;
 
-    const totalProcessed = payments.length || recoveries.length;
+    const unrecoveredCount = recoveries.filter((r: any) => !r.status || !r.status.startsWith('RECOVERED')).length ||
+      payments.filter((p: any) => p.status === 'failed').length;
+
+    const failedPaymentsCount = unrecoveredCount;
+
+    const totalProcessed = recoveries.length || payments.length;
     const recoverySuccessRate =
       totalProcessed > 0
         ? parseFloat(((recoveredCount / totalProcessed) * 100).toFixed(1))
         : 0;
 
-    // 5. Total Revenue = Recovered Revenue + Total Volume
-    const totalRevenue = payments.reduce((sum, p: any) => sum + (p.amount || 0), 0) || (recoveredRevenue + moneyLeakageToday);
+    // 4. Total Revenue
+    const totalRevenue = recoveredRevenue + moneyLeakageToday;
 
-    // 6. Subscriptions count
+    // 5. Subscriptions count
     const failedSubscriptionsCount = recoveries.filter((r: any) => r.type === 'SUBSCRIPTION_AUTOPAY' && !r.status.startsWith('RECOVERED')).length;
 
-    // 7. Recovered Customers Count
-    const recoveredCustomersCount = customers.filter((c: any) => (c.lifetimeRecovered || 0) > 0).length;
+    // 6. Recovered Customers Count
+    const recoveredCustomersCount = customers.filter((c: any) => (c.lifetimeRecovered || 0) > 0 || (c.totalRecovered || 0) > 0).length;
 
-    // 8. Stop States & NPCI Compliance Violations Prevented
-    const stopStatesCount = recoveries.filter((r: any) => r.status.startsWith('STOP_')).length;
+    // 7. Stop States & NPCI Compliance Violations Prevented
+    const stopStatesCount = recoveries.filter((r: any) => r.status && r.status.startsWith('STOP_')).length;
     const npciViolationsPrevented = stopStatesCount * 3 + recoveries.filter((r: any) => (r.npciAttemptCount || 0) >= 3).length;
 
-    // 9. Average Retries to Success
+    // 8. Average Retries to Success
     const successRetries = retryAttempts.filter((ra: any) => ra.status === 'success');
     const avgRetries =
       successRetries.length > 0
         ? parseFloat((successRetries.reduce((acc, cur: any) => acc + (cur.attemptNumber || 1), 0) / successRetries.length).toFixed(2))
         : 1.35;
 
-    // 10. AI Health Score
+    // 9. AI Health Score
     const aiHealthScore = Math.min(100, Math.max(50, Math.round(75 + recoverySuccessRate * 0.25)));
 
     return {
@@ -78,7 +86,7 @@ export class AnalyticsService {
       moneyLeakageToday,
       recoverySuccessRate,
       failedPaymentsCount,
-      failedPaymentsAmount,
+      failedPaymentsAmount: moneyLeakageToday,
       failedSubscriptionsCount,
       recoveredCustomersCount,
       aiHealthScore,

@@ -43,7 +43,7 @@ function CustomerCard({ customer }: { customer: any }) {
           <div className="rounded-2xl bg-emerald-50/80 border border-emerald-100 p-3.5">
             <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-1">Recovered</p>
             <p className="text-lg font-extrabold text-emerald-900 font-mono">
-              {formatINR(customer.lifetimeRecovered || 0, { hideDecimals: true })}
+              {formatINR(customer.totalRecovered ?? customer.lifetimeRecovered ?? 0, { hideDecimals: true })}
             </p>
           </div>
           <div className="rounded-2xl bg-amber-50/80 border border-amber-100 p-3.5">

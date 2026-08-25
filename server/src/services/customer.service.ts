@@ -6,30 +6,43 @@ export class CustomerService {
   async listCustomers(merchantId: string, limit = 50, offset = 0, search?: string) {
     const { data, total } = await customerRepository.list(merchantId, limit, offset, search);
 
-    const formatted: CustomerProfileDto[] = data.map((c: any) => ({
-      id: c.id,
-      name: c.name || 'Customer',
-      email: c.email || '',
-      phone: c.phone || '',
-      vpa: c.vpa || '',
-      memberSince: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      lifetimeValue: (c.subscriptions || []).reduce((sum: number, s: any) => sum + (s.amount || 0) * 12, 0),
-      totalRecovered: c.lifetimeRecovered || 0,
-      totalLost: c.lifetimeLost || 0,
-      riskScore: c.riskScore || 15,
-      recoveryProbability: c.recoveryProbability || 80,
-      healthScore: c.healthScore || 85,
-      optedOut: !!c.optedOut,
-      activeSubscriptionsCount: (c.subscriptions || []).filter((s: any) => s.status === 'active').length,
-      paymentHistoryCount: (c.subscriptions?.length || 0) + (c.recoverySessions?.length || 0),
-    }));
+    const formatted: any[] = data.map((c: any) => {
+      const recoveredFromSessions = (c.recoverySessions || [])
+        .filter((r: any) => r.status && r.status.startsWith('RECOVERED'))
+        .reduce((sum: number, r: any) => sum + (r.recoveredAmount || r.originalAmount || 0), 0);
+      const totalRecovered = Math.max(c.lifetimeRecovered || 0, recoveredFromSessions);
+
+      return {
+        id: c.id,
+        name: c.name || 'Customer',
+        email: c.email || '',
+        phone: c.phone || '',
+        vpa: c.vpa || '',
+        memberSince: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        lifetimeValue: (c.subscriptions || []).reduce((sum: number, s: any) => sum + (s.amount || 0) * 12, 0),
+        totalRecovered,
+        lifetimeRecovered: totalRecovered,
+        totalLost: c.lifetimeLost || 0,
+        riskScore: c.riskScore || 15,
+        recoveryProbability: c.recoveryProbability || 80,
+        healthScore: c.healthScore || 85,
+        optedOut: !!c.optedOut,
+        activeSubscriptionsCount: (c.subscriptions || []).filter((s: any) => s.status === 'active').length,
+        paymentHistoryCount: (c.subscriptions?.length || 0) + (c.recoverySessions?.length || 0),
+      };
+    });
 
     return { data: formatted, total };
   }
 
-  async getCustomerById(id: string, merchantId: string): Promise<CustomerProfileDto> {
+  async getCustomerById(id: string, merchantId: string): Promise<any> {
     const c: any = await customerRepository.findById(id, merchantId);
     if (!c) throw new NotFoundError('Customer not found.');
+
+    const recoveredFromSessions = (c.recoverySessions || [])
+      .filter((r: any) => r.status && r.status.startsWith('RECOVERED'))
+      .reduce((sum: number, r: any) => sum + (r.recoveredAmount || r.originalAmount || 0), 0);
+    const totalRecovered = Math.max(c.lifetimeRecovered || 0, recoveredFromSessions);
 
     return {
       id: c.id,
@@ -39,7 +52,8 @@ export class CustomerService {
       vpa: c.vpa || '',
       memberSince: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       lifetimeValue: (c.subscriptions || []).reduce((sum: number, s: any) => sum + (s.amount || 0) * 12, 0),
-      totalRecovered: c.lifetimeRecovered || 0,
+      totalRecovered,
+      lifetimeRecovered: totalRecovered,
       totalLost: c.lifetimeLost || 0,
       riskScore: c.riskScore || 15,
       recoveryProbability: c.recoveryProbability || 80,
