@@ -90,7 +90,7 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700 block">Work Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                 <input
                   id="login-email"
                   type="email"
@@ -98,7 +98,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="merchant@company.com"
                   required
-                  className="w-full h-10 rounded-xl border border-slate-200 pl-9.5 pr-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
+                  className="w-full h-10 rounded-xl border border-slate-200 pl-10 pr-3.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
                 />
               </div>
             </div>
@@ -111,7 +111,7 @@ export default function LoginPage() {
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                 <input
                   id="login-password"
                   type="password"
@@ -119,7 +119,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full h-10 rounded-xl border border-slate-200 pl-9.5 pr-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
+                  className="w-full h-10 rounded-xl border border-slate-200 pl-10 pr-3.5 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
                 />
               </div>
             </div>

@@ -139,9 +139,13 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
       if (summaryRes) setMetrics(summaryRes);
       if (recoveriesRes?.data) {
         const mapped = recoveriesRes.data.map(mapRecoverySessionToRecord);
-        setRecoveries(mapped);
+        // Deduplicate recoveries by unique ID
+        const uniqueRecoveries = Array.from(
+          new Map<string, RecoveryRecord>(mapped.map((r: RecoveryRecord) => [r.id, r])).values()
+        );
+        setRecoveries(uniqueRecoveries);
         if (selectedRecovery) {
-          const updated = mapped.find((r: RecoveryRecord) => r.id === selectedRecovery.id);
+          const updated = uniqueRecoveries.find((r: RecoveryRecord) => r.id === selectedRecovery.id);
           if (updated) setSelectedRecovery(updated);
         }
       }
@@ -262,34 +266,29 @@ export function SimulatorProvider({ children }: { children: React.ReactNode }) {
   const triggerCustomerPaymentScenario = async (recoveryId?: string) => {
     try {
       if (recoveryId) {
-        const targetRec = recoveries.find((r) => r.id === recoveryId);
-        if (targetRec) {
+        await paymentsService.capturePayment(recoveryId);
+      } else {
+        const activeUnrecovered = recoveries.find(
+          (r) => !r.status.startsWith('RECOVERED')
+        );
+        if (activeUnrecovered) {
+          await paymentsService.capturePayment(activeUnrecovered.id);
+        } else {
           await paymentsService.createPayment({
             customer: {
-              name: targetRec.customerName,
-              email: targetRec.customerEmail,
-              phone: targetRec.customerPhone,
+              name: 'Priya Sundaram',
+              email: 'priya.s@designstudio.io',
+              phone: '+91 98110 55672',
             },
-            amount: targetRec.amount,
+            amount: 1499,
             status: 'captured',
             scenario: 'SUCCESS',
           });
         }
-      } else {
-        await paymentsService.createPayment({
-          customer: {
-            name: 'Priya Sundaram',
-            email: 'priya.s@designstudio.io',
-            phone: '+91 98110 55672',
-          },
-          amount: 1499,
-          status: 'captured',
-          scenario: 'SUCCESS',
-        });
       }
       await refreshData();
     } catch (err) {
-      console.error('Error simulating captured payment in MongoDB:', err);
+      console.error('Error settling payment in MongoDB:', err);
     }
   };
 

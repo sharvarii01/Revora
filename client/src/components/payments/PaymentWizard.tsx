@@ -191,12 +191,13 @@ export function PaymentWizard({ isOpen, onClose }: PaymentWizardProps) {
     setTimeout(() => {
       setStep(1);
       setCustomer({ name: '', email: '', phone: '', company: '' });
-      setPayment({ amount: '', orderId: `ORD-${Date.now().toString().slice(-6)}`, paymentType: 'SUBSCRIPTION', upiId: '' });
+      setPayment({ amount: '', orderId: `ORD-${Date.now().toString().slice(-6)}_${Math.floor(Math.random() * 900 + 100)}`, paymentType: 'SUBSCRIPTION', upiId: '' });
       setScenario('U30');
     }, 300);
   };
 
   const handleStartRecovery = async () => {
+    if (isLoading) return;
     setIsLoading(true);
     try {
       const created = await paymentsService.createPayment({
@@ -556,7 +557,8 @@ export function PaymentWizard({ isOpen, onClose }: PaymentWizardProps) {
               size="sm"
               onClick={handleStartRecovery}
               isLoading={isLoading}
-              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 shadow-xs font-bold text-white"
+              disabled={isLoading}
+              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 shadow-xs font-bold text-white disabled:opacity-50"
             >
               <Zap className="h-4 w-4" />
               Start Recovery
