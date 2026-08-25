@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: revora-backend
+    env: node
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: JWT_SECRET
+        value: vasooli_super_secret_jwt_access_key_2026
+      - key: JWT_REFRESH_SECRET
+        value: vasooli_super_secret_jwt_refresh_key_2026
+      - key: GROQ_API_KEY
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        value: rzp_test_vasooli_live_sandbox
+      - key: RAZORPAY_KEY_SECRET
+        value: rzp_secret_vasooli_sandbox_key
+      - key: RAZORPAY_WEBHOOK_SECRET
+        value: whsec_vasooli_razorpay_hmac_2026

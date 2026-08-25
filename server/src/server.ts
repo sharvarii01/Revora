@@ -24,13 +24,14 @@ export function createServer(): Application {
   app.use(
     cors({
       origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin) return callback(null, true);
+        
         if (
           origin === env.CLIENT_ORIGIN ||
-          origin.endsWith('.vercel.app') ||
           origin.includes('localhost') ||
           origin.includes('127.0.0.1') ||
-          origin.includes('railway.app')
+          origin.endsWith('.vercel.app')
         ) {
           return callback(null, true);
         }
