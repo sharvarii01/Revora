@@ -10,9 +10,10 @@ async function resolveDefaultMerchantId(): Promise<string> {
   if (cachedMerchantId) return cachedMerchantId;
   try {
     const m: any = await MerchantModel.findOne({ email: 'sharvi@saasplatform.in' }).lean();
-    if (m) {
-      cachedMerchantId = m._id.toString();
-      return cachedMerchantId;
+    if (m && m._id) {
+      const id = m._id.toString();
+      cachedMerchantId = id;
+      return id;
     }
   } catch {
     // fallback
