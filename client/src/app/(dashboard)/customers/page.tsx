@@ -73,26 +73,35 @@ function CustomerCard({ customer }: { customer: any }) {
 }
 
 export default function CustomersPage() {
-  const { recoveries } = useSimulator();
+  const { recoveries, customers: simCustomers } = useSimulator();
   const [searchTerm, setSearchTerm] = useState('');
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [customers, setCustomers] = useState<any[]>(simCustomers || []);
+  const [isLoading, setIsLoading] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   const loadCustomers = async () => {
     try {
       const res = await customersService.getCustomers({ limit: 100 });
-      if (res?.data) setCustomers(res.data);
-    } catch (err) {
-      console.error('Error fetching customers from MongoDB:', err);
+      if (res?.data && res.data.length > 0) {
+        setCustomers(res.data);
+      } else if (simCustomers && simCustomers.length > 0) {
+        setCustomers(simCustomers);
+      }
+    } catch {
+      if (simCustomers && simCustomers.length > 0) {
+        setCustomers(simCustomers);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    if (simCustomers && simCustomers.length > 0) {
+      setCustomers(simCustomers);
+    }
     loadCustomers();
-  }, [recoveries]);
+  }, [recoveries, simCustomers]);
 
   const filteredCustomers = customers.filter(
     (c) =>

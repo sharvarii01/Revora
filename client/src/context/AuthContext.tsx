@@ -33,6 +33,29 @@ export const DEFAULT_DEMO_MERCHANT: MerchantUser = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+function formatNameFromEmail(email: string): string {
+  const local = email.split('@')[0] || 'Merchant';
+  return (
+    local
+      .replace(/[._-]/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ') || 'Merchant'
+  );
+}
+
+function formatBusinessFromEmail(email: string): string {
+  const domain = email.split('@')[1] || '';
+  const root = domain.split('.')[0] || '';
+  if (!root || ['gmail', 'yahoo', 'outlook', 'hotmail', 'icloud', 'proton'].includes(root.toLowerCase())) {
+    const name = formatNameFromEmail(email);
+    return `${name} Enterprise`;
+  }
+  const clean = root.charAt(0).toUpperCase() + root.slice(1);
+  return `${clean} Technologies Pvt Ltd`;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<MerchantUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -67,23 +90,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, pass: string): Promise<boolean> => {
     setIsLoading(true);
     try {
+      const isDemo = email.toLowerCase() === 'sharvi@saasplatform.in';
+      const cleanEmail = email.trim().toLowerCase();
+      const userName = isDemo ? DEFAULT_DEMO_MERCHANT.name : formatNameFromEmail(cleanEmail);
+      const userBusiness = isDemo ? DEFAULT_DEMO_MERCHANT.businessName : formatBusinessFromEmail(cleanEmail);
+      const userId = isDemo ? 'mer_demo_1' : `mer_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
       let merchantUser: MerchantUser = {
-        ...DEFAULT_DEMO_MERCHANT,
-        email: email || DEFAULT_DEMO_MERCHANT.email,
-        name: email ? email.split('@')[0] : DEFAULT_DEMO_MERCHANT.name,
+        id: userId,
+        name: userName,
+        email: cleanEmail,
+        businessName: userBusiness,
+        environment: 'LIVE',
+        maxDiscountPct: 10,
+        autoRecoveryEnabled: true,
+        hasRazorpayKeys: true,
       };
+
       let accessToken = 'revora_demo_access_jwt_2026';
       let refreshToken = 'revora_demo_refresh_jwt_2026';
 
       try {
-        const data = await authService.login({ email, password: pass });
+        const data = await authService.login({ email: cleanEmail, password: pass });
         if (data?.merchant) {
-          merchantUser = data.merchant;
+          merchantUser = { ...merchantUser, ...data.merchant };
           accessToken = data.accessToken || accessToken;
           refreshToken = data.refreshToken || refreshToken;
         }
       } catch (apiErr) {
-        console.warn('API login unavailable, proceeding with local merchant credentials:', apiErr);
+        console.warn('API login unavailable, proceeding with isolated local merchant credentials:', apiErr);
       }
 
       if (typeof window !== 'undefined') {
@@ -98,13 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return true;
     } catch (error) {
       console.error('Login failed:', error);
-      setUser(DEFAULT_DEMO_MERCHANT);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('revora_merchant', JSON.stringify(DEFAULT_DEMO_MERCHANT));
-      }
-      setIsLoginModalOpen(false);
-      router.push('/dashboard');
-      return true;
+      return false;
     } finally {
       setIsLoading(false);
     }

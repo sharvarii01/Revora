@@ -11,6 +11,7 @@ import { formatINR } from '@/utils/currency';
 import { useSimulator } from '@/context/SimulatorContext';
 import { useAuth } from '@/context/AuthContext';
 import { formatRelativeTime } from '@/utils/date';
+import { AIRecommendationItem } from '@/services/dataStorage';
 import {
   AlertCircle,
   TrendingUp,
@@ -26,43 +27,99 @@ import {
   Loader2,
 } from 'lucide-react';
 
-function AIRecommendation({ onApply }: { onApply: () => void }) {
-  const [applied, setApplied] = useState(false);
+function AIRecommendation({
+  recommendation,
+  onApply,
+  onReset,
+  totalAvailable,
+}: {
+  recommendation?: AIRecommendationItem;
+  onApply: (rec: AIRecommendationItem) => Promise<void>;
+  onReset: () => void;
+  totalAvailable: number;
+}) {
+  const [isApplying, setIsApplying] = useState(false);
 
-  const handleApply = () => {
-    setApplied(true);
-    onApply();
-    setTimeout(() => setApplied(false), 3000);
+  if (!recommendation) {
+    return (
+      <div className="rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50/90 via-white to-indigo-50/50 p-7 xl:p-8 shadow-xs animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 shrink-0 shadow-xs">
+              <CheckCircle2 className="h-7 w-7" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-base font-extrabold text-slate-900">All AI Strategies Active</p>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  Fully Optimized
+                </span>
+              </div>
+              <p className="text-sm sm:text-base text-slate-600 font-medium">
+                Revora AI Guardian is continuously monitoring live telemetry, guarding 24h cooldowns, and scheduling optimal recovery windows.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="md"
+            variant="outline"
+            onClick={onReset}
+            className="gap-2 font-bold text-slate-700 hover:text-indigo-600 hover:border-indigo-300 shrink-0"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Generate Fresh Optimizations
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleApply = async () => {
+    setIsApplying(true);
+    try {
+      await onApply(recommendation);
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   return (
-    <div className="rounded-3xl border border-indigo-200 bg-gradient-to-r from-indigo-50/90 via-white to-purple-50/50 p-7 xl:p-8 shadow-xs animate-fade-in delay-200">
+    <div className="rounded-3xl border border-indigo-200 bg-gradient-to-r from-indigo-50/90 via-white to-purple-50/50 p-7 xl:p-8 shadow-xs animate-fade-in transition-all">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-start gap-5">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 shrink-0 shadow-xs">
             <Brain className="h-7 w-7" />
           </div>
           <div>
-            <div className="flex items-center gap-3 mb-1.5">
+            <div className="flex items-center gap-3 mb-1.5 flex-wrap">
               <p className="text-base font-extrabold text-slate-900">Today's AI Recommendation</p>
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                Highest Impact
+                {recommendation.category ? recommendation.category.replace('_', ' ') : 'Highest Impact'}
               </span>
+              {totalAvailable > 1 && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                  {totalAvailable} in queue
+                </span>
+              )}
             </div>
             <p className="text-lg xl:text-xl font-bold text-slate-800">
-              Move tomorrow's SBI retries to the{' '}
-              <span className="text-indigo-700 underline decoration-indigo-300 decoration-2 underline-offset-4">
-                09:15 AM salary clearing window
-              </span>
+              {recommendation.title}
             </p>
             <div className="flex flex-wrap items-center gap-6 mt-3">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-slate-500">Expected gain:</span>
-                <span className="text-base font-extrabold text-emerald-700 font-mono">₹42,800</span>
+                <span className="text-base font-extrabold text-emerald-700 font-mono">
+                  {recommendation.impactMetric || `+₹${recommendation.expectedGain?.toLocaleString('en-IN')}`}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-slate-500">Confidence:</span>
-                <span className="text-base font-extrabold text-indigo-700">94%</span>
+                <span className="text-base font-extrabold text-indigo-700 font-mono">
+                  {recommendation.confidenceScore || 94}%
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-semibold text-slate-400">NPCI OC-136 Guarded</span>
               </div>
             </div>
           </div>
@@ -70,19 +127,11 @@ function AIRecommendation({ onApply }: { onApply: () => void }) {
         <Button
           size="md"
           onClick={handleApply}
-          className={applied ? 'bg-emerald-600 hover:bg-emerald-600 gap-2 shrink-0' : 'gap-2 shrink-0'}
+          isLoading={isApplying}
+          className="gap-2 shrink-0 font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
         >
-          {applied ? (
-            <>
-              <CheckCircle2 className="h-5 w-5" />
-              Applied!
-            </>
-          ) : (
-            <>
-              <Zap className="h-5 w-5" />
-              Apply Strategy
-            </>
-          )}
+          <Zap className="h-5 w-5" />
+          Apply Strategy
         </Button>
       </div>
     </div>
@@ -90,7 +139,14 @@ function AIRecommendation({ onApply }: { onApply: () => void }) {
 }
 
 export default function DashboardPage() {
-  const { metrics, activityLogs, triggerU30Scenario } = useSimulator();
+  const {
+    metrics,
+    activityLogs,
+    recommendations,
+    applyAIRecommendation,
+    resetRecommendations,
+    triggerU30Scenario,
+  } = useSimulator();
   const { user } = useAuth();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isDemoRunning, setIsDemoRunning] = useState(false);
@@ -219,8 +275,19 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* AI Recommendation Banner */}
-      <AIRecommendation onApply={() => handleRunDemo()} />
+      {/* AI Recommendation Banner with Live Dynamic Queue */}
+      <AIRecommendation
+        recommendation={recommendations[0]}
+        totalAvailable={recommendations.length}
+        onReset={resetRecommendations}
+        onApply={async (rec) => {
+          const res = await applyAIRecommendation(rec.id);
+          if (res.success) {
+            setDemoToast(`✨ Strategy Applied: ${res.title} (+₹${res.gain.toLocaleString('en-IN')} projected gain)`);
+            setTimeout(() => setDemoToast(null), 5000);
+          }
+        }}
+      />
 
       {/* Charts Row in 3-Col Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">

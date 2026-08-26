@@ -11,16 +11,27 @@ import { RevoraLogo } from '@/components/ui/RevoraLogo';
 export default function LoginPage() {
   const router = useRouter();
   const { login, demoLogin, isLoading } = useAuth();
-  const [email, setEmail] = useState('sharvi@saasplatform.in');
-  const [password, setPassword] = useState('Password123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email.trim() || !password) return;
+
+    if (password.length < 4) {
+      setErrorMsg('Password must be at least 4 characters long.');
+      return;
+    }
+
     setIsSubmitting(true);
+    setErrorMsg(null);
     try {
-      await login(email, password);
+      const ok = await login(email.trim(), password);
+      if (!ok) {
+        setErrorMsg('Login failed. Please verify credentials.');
+      }
     } catch {
       router.push('/dashboard');
     } finally {
@@ -30,6 +41,7 @@ export default function LoginPage() {
 
   const handleDemoClick = async () => {
     setIsSubmitting(true);
+    setErrorMsg(null);
     try {
       await demoLogin();
     } catch {
@@ -84,6 +96,12 @@ export default function LoginPage() {
             <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">or sign in with email</span>
             <div className="flex-1 border-t border-slate-100" />
           </div>
+
+          {errorMsg && (
+            <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs text-rose-700 font-medium">
+              {errorMsg}
+            </div>
+          )}
 
           {/* Input Form */}
           <form onSubmit={handleSubmit} className="space-y-4">

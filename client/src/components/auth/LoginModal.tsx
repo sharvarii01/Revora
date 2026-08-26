@@ -9,8 +9,8 @@ import { RevoraLogo } from '@/components/ui/RevoraLogo';
 
 export function LoginModal() {
   const { isLoginModalOpen, closeLoginModal, login, demoLogin, isLoading } = useAuth();
-  const [email, setEmail] = useState('sharvi@saasplatform.in');
-  const [password, setPassword] = useState('Password123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -32,12 +32,22 @@ export function LoginModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email.trim() || !password) return;
+
+    if (password.length < 4) {
+      setErrorMsg('Password must be at least 4 characters long.');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
-      await login(email, password);
-      closeLoginModal();
+      const ok = await login(email.trim(), password);
+      if (ok) {
+        closeLoginModal();
+      } else {
+        setErrorMsg('Login failed. Please check your credentials.');
+      }
     } catch (err: any) {
       setErrorMsg(err?.message || 'Login failed. Please try again.');
     } finally {

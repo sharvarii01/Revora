@@ -5,10 +5,13 @@ import { RecoverySessionModel } from '../models/RecoverySession.model';
 
 export class CustomerRepository {
   async findById(id: string, merchantId: string): Promise<any | null> {
-    const customer: any = await CustomerModel.findOne({
-      _id: id,
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const query: any = {
       merchantId: { $in: [merchantId, 'mer_demo_1'] },
-    }).lean();
+      ...(isObjectId ? { _id: id } : { $or: [{ razorpayCustId: id }, { email: id }] }),
+    };
+
+    const customer: any = await CustomerModel.findOne(query).lean();
     if (!customer) return null;
 
     const [mandates, subscriptions, recoverySessions]: any[] = await Promise.all([
