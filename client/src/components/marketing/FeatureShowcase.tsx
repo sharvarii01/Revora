@@ -42,48 +42,48 @@ export function FeatureShowcase() {
   ];
 
   return (
-    <section id="features" className="py-20 bg-white border-b border-slate-200/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+    <section id="features" className="py-24 bg-white border-b border-slate-200/80">
+      <div className="w-full max-w-[1540px] mx-auto px-4 sm:px-8 lg:px-12">
+        <div className="text-center max-w-4xl mx-auto mb-16 space-y-3">
           <Badge variant="default" className="text-xs font-mono uppercase font-bold">
             Autonomous Capabilities
           </Badge>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
             Engineered Specifically for the Indian Payments Stack
           </h2>
-          <p className="text-sm text-slate-600 font-medium max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-slate-600 font-medium max-w-2xl mx-auto">
             Traditional US/EU dunning tools blindly retry cards and trigger bank penalties. Revora is natively designed for
             NPCI UPI AutoPay, e-Mandates, and Razorpay.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-[1400px] mx-auto">
           {features.map((item, idx) => (
             <Card
               key={idx}
-              className="p-6 sm:p-7 bg-slate-50/70 border-slate-200 shadow-xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between"
+              className="p-6 sm:p-7 bg-slate-50/70 border-slate-200 shadow-xs hover:shadow-md hover:border-indigo-200 hover:bg-white transition-all flex flex-col justify-between rounded-3xl"
             >
-              <div className="space-y-3.5">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="h-10 w-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-xs">
+                  <div className="h-11 w-11 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-xs">
                     {item.icon}
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-2xs">
+                  <span className="text-[10px] font-mono font-bold text-slate-600 bg-white px-2.5 py-1 rounded-full border border-slate-200 shadow-2xs">
                     {item.pill}
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
-                  <p className="text-xs font-semibold text-indigo-600 mt-0.5">{item.subtitle}</p>
+                  <h3 className="text-base font-bold text-slate-900 leading-snug">{item.title}</h3>
+                  <p className="text-xs font-semibold text-indigo-600 mt-1">{item.subtitle}</p>
                 </div>
 
-                <p className="text-xs text-slate-600 leading-relaxed font-medium">{item.description}</p>
+                <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed font-medium">{item.description}</p>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-slate-200/80 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                <span>Active across all recurring billing cycles</span>
+              <div className="mt-6 pt-3.5 border-t border-slate-200/80 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                <span>Active across recurring cycles</span>
               </div>
             </Card>
           ))}

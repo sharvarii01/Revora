@@ -3,11 +3,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService, MerchantUser } from '@/services/auth.service';
+import { LoginModal } from '@/components/auth/LoginModal';
 
 interface AuthContextType {
   user: MerchantUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean;
+  isLoginModalOpen: boolean;
+  openLoginModal: () => void;
+  closeLoginModal: () => void;
   login: (email: string, pass: string) => Promise<boolean>;
   demoLogin: () => Promise<boolean>;
   signup: (data: any) => Promise<boolean>;
@@ -15,7 +20,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
 }
 
-const DEFAULT_DEMO_MERCHANT: MerchantUser = {
+export const DEFAULT_DEMO_MERCHANT: MerchantUser = {
   id: 'mer_demo_1',
   name: 'Sharvi Dhole',
   email: 'sharvi@saasplatform.in',
@@ -29,8 +34,10 @@ const DEFAULT_DEMO_MERCHANT: MerchantUser = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<MerchantUser | null>(DEFAULT_DEMO_MERCHANT);
+  const [user, setUser] = useState<MerchantUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const router = useRouter();
 
   // Load session from localStorage on mount
@@ -38,14 +45,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const cached = localStorage.getItem('revora_merchant') || localStorage.getItem('vasooli_merchant');
       if (cached) {
-        setUser(JSON.parse(cached));
+        const parsed = JSON.parse(cached);
+        if (parsed && (parsed.email || parsed.id)) {
+          setUser(parsed);
+        } else {
+          setUser(null);
+        }
       } else {
-        setUser(DEFAULT_DEMO_MERCHANT);
+        setUser(null);
       }
     } catch {
-      setUser(DEFAULT_DEMO_MERCHANT);
+      setUser(null);
+    } finally {
+      setIsInitialized(true);
     }
   }, []);
+
+  const openLoginModal = () => setIsLoginModalOpen(true);
+  const closeLoginModal = () => setIsLoginModalOpen(false);
 
   const login = async (email: string, pass: string): Promise<boolean> => {
     setIsLoading(true);
@@ -76,12 +93,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser(merchantUser);
+      setIsLoginModalOpen(false);
       router.push('/dashboard');
       return true;
     } catch (error) {
       console.error('Login failed:', error);
-      // Resilient fallback even on unhandled error
       setUser(DEFAULT_DEMO_MERCHANT);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('revora_merchant', JSON.stringify(DEFAULT_DEMO_MERCHANT));
+      }
+      setIsLoginModalOpen(false);
       router.push('/dashboard');
       return true;
     } finally {
@@ -90,7 +111,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const demoLogin = async (): Promise<boolean> => {
-    return login('sharvi@saasplatform.in', 'Password123!');
+    setIsLoading(true);
+    try {
+      const merchantUser = { ...DEFAULT_DEMO_MERCHANT };
+      const accessToken = 'revora_demo_access_jwt_2026';
+      const refreshToken = 'revora_demo_refresh_jwt_2026';
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('revora_access_token', accessToken);
+        localStorage.setItem('revora_refresh_token', refreshToken);
+        localStorage.setItem('revora_merchant', JSON.stringify(merchantUser));
+      }
+
+      setUser(merchantUser);
+      setIsLoginModalOpen(false);
+      router.push('/dashboard');
+      return true;
+    } catch (error) {
+      console.error('Demo login failed:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const signup = async (data: any): Promise<boolean> => {
@@ -127,11 +169,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser(merchantUser);
+      setIsLoginModalOpen(false);
       router.push('/dashboard');
       return true;
     } catch (error) {
       console.error('Signup failed:', error);
       setUser(DEFAULT_DEMO_MERCHANT);
+      setIsLoginModalOpen(false);
       router.push('/dashboard');
       return true;
     } finally {
@@ -177,6 +221,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isAuthenticated: !!user,
         isLoading,
+        isInitialized,
+        isLoginModalOpen,
+        openLoginModal,
+        closeLoginModal,
         login,
         demoLogin,
         signup,
@@ -185,6 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+      <LoginModal />
     </AuthContext.Provider>
   );
 }
@@ -194,3 +243,4 @@ export function useAuth() {
   if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }
+

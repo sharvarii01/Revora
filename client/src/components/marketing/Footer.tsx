@@ -2,13 +2,27 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
 import { RevoraLogo } from '@/components/ui/RevoraLogo';
+import { useAuth } from '@/context/AuthContext';
 
 export function MarketingFooter() {
+  const router = useRouter();
+  const { isAuthenticated, openLoginModal } = useAuth();
+
+  const handleConsoleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    } else {
+      openLoginModal();
+    }
+  };
+
   return (
-    <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <footer className="bg-slate-900 text-slate-400 text-xs sm:text-sm border-t border-slate-800">
+      <div className="w-full max-w-[1540px] mx-auto px-4 sm:px-8 lg:px-12 py-16 sm:py-20">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
           {/* Brand & Mission */}
           <div className="md:col-span-2 space-y-4">
@@ -36,9 +50,13 @@ export function MarketingFooter() {
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Product</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/dashboard" className="hover:text-white transition-colors">
+                <button
+                  type="button"
+                  onClick={handleConsoleClick}
+                  className="hover:text-white transition-colors text-left"
+                >
                   Merchant Console
-                </Link>
+                </button>
               </li>
               <li>
                 <Link href="/simulator" className="hover:text-white transition-colors">
@@ -99,12 +117,16 @@ export function MarketingFooter() {
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Get Started</h4>
             <p className="text-slate-400">Launch the interactive console in sandbox mode with pre-seeded NPCI failure sessions.</p>
-            <Link href="/dashboard" className="inline-block pt-1">
-              <button className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow-sm">
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleConsoleClick}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow-sm cursor-pointer"
+              >
                 <span>Open Console</span>
                 <ArrowRight className="h-3 w-3" />
               </button>
-            </Link>
+            </div>
           </div>
         </div>
 

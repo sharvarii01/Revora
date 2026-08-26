@@ -1,14 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { formatINR } from '@/utils/currency';
 import { TrendingUp, ShieldCheck, Sparkles, ArrowRight, DollarSign } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 export function RoiCalculator() {
+  const router = useRouter();
+  const { isAuthenticated, openLoginModal } = useAuth();
   const [monthlyGmv, setMonthlyGmv] = useState(5000000); // 50 Lakhs default
   const [failureRate, setFailureRate] = useState(12); // 12% default
   const [ticketSize, setTicketSize] = useState(2500); // Avg transaction size
@@ -22,23 +26,23 @@ export function RoiCalculator() {
   const roiMultiple = Math.round(estimatedRecovered / (estimatedRevoraFee || 1));
 
   return (
-    <section id="calculator" className="py-20 bg-slate-50 border-b border-slate-200/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
+    <section id="calculator" className="py-24 bg-slate-50 border-b border-slate-200/80">
+      <div className="w-full max-w-[1540px] mx-auto px-4 sm:px-8 lg:px-12">
+        <div className="text-center max-w-4xl mx-auto mb-16 space-y-3">
           <Badge variant="default" className="text-xs font-mono uppercase font-bold">
             Interactive Calculator
           </Badge>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
             How Much Revenue Is Leaking From Your Business?
           </h2>
-          <p className="text-sm text-slate-600 font-medium max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-slate-600 font-medium max-w-2xl mx-auto">
             Input your monthly recurring subscription GMV to see how much revenue Revora AI will rescue for you every month.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-[1400px] mx-auto">
           {/* Left Column: Sliders Input Card */}
-          <Card className="lg:col-span-6 p-6 sm:p-8 bg-white border-slate-200 shadow-sm space-y-6">
+          <Card className="lg:col-span-6 p-6 sm:p-8 bg-white border-slate-200 shadow-md rounded-3xl space-y-6">
             <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
               <span>Your Payment Metrics</span>
               <span className="text-xs font-mono font-medium text-slate-400">Real-Time Simulation</span>
@@ -117,7 +121,7 @@ export function RoiCalculator() {
           </Card>
 
           {/* Right Column: Dynamic Projected Results Card */}
-          <Card className="lg:col-span-6 p-6 sm:p-8 bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white border-0 shadow-lg flex flex-col justify-between space-y-6">
+          <Card className="lg:col-span-6 p-6 sm:p-8 bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white border-0 shadow-xl rounded-3xl flex flex-col justify-between space-y-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-indigo-800/80 pb-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">
@@ -156,12 +160,20 @@ export function RoiCalculator() {
                 <span className="font-bold text-emerald-400 font-mono text-sm">{roiMultiple}x Return on Spend</span>
               </div>
 
-              <Link href="/dashboard">
-                <Button size="lg" className="w-full font-bold bg-white text-indigo-950 hover:bg-indigo-50 shadow-md gap-2 text-xs">
-                  <span>Claim Your Recovered Revenue</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+              <Button
+                size="lg"
+                onClick={() => {
+                  if (isAuthenticated) {
+                    router.push('/dashboard');
+                  } else {
+                    openLoginModal();
+                  }
+                }}
+                className="w-full font-bold bg-white text-indigo-950 hover:bg-indigo-50 shadow-md gap-2 text-xs"
+              >
+                <span>Claim Your Recovered Revenue</span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </div>
           </Card>
         </div>
