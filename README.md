@@ -220,7 +220,4 @@ If you like Revora, consider giving the repository a ⭐ on GitHub.
 Every star helps the project grow and motivates future development.
 
 ---
-
-<div align="center">Built with ❤️ for developers.
-
 </div>
